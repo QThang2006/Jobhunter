@@ -69,7 +69,7 @@ com.example.dacs4
 ### 2. Triển khai
 1. Clone dự án này về máy:
    ```bash
-   git clone [YOUR_GITHUB_REACT_URL_OR_ANDROID_URL_HERE]
+   git clone https://github.com/QThang2006/Jobhunter
    ```
 2. Mở thư mục bằng Android Studio.
 3. Chờ Gradle đồng bộ hóa các thư viện phụ thuộc (Sync Libraries).
