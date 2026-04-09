@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.navigation.compose)
+    implementation(libs.compose.material.icons.extended)
 
     // Hilt DI
     implementation(libs.hilt.android)
