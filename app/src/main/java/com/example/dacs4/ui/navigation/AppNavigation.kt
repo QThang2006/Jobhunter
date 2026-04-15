@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.dacs4.core.security.TokenManager
 import com.example.dacs4.ui.screens.auth.LoginScreen
 import com.example.dacs4.ui.screens.home.HomeScreen
+import com.example.dacs4.ui.screens.job.JobDetailScreen
 
 /**
  * BẢN ĐỒ ĐIỀU HƯỚNG TOÀN APP
@@ -15,6 +16,7 @@ import com.example.dacs4.ui.screens.home.HomeScreen
 object Routes {
     const val LOGIN = "login"
     const val HOME = "home"
+    const val JOB_DETAIL = "job_detail/{jobId}" // {jobId} là tham số nhận vào
 }
 
 @Composable
@@ -30,7 +32,6 @@ fun AppNavigation(tokenManager: TokenManager) {
         composable(Routes.LOGIN) {
             LoginScreen(
                 onLoginSuccess = {
-                    // Xóa sạch lịch sử các màn trước đó (Login) để User không ấn Back quay lại được
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
@@ -38,15 +39,27 @@ fun AppNavigation(tokenManager: TokenManager) {
             )
         }
 
-        // --- MÀN HÌNH CHÍNH (Sau khi đăng nhập) ---
+        // --- MÀN HÌNH CHÍNH ---
         composable(Routes.HOME) {
             HomeScreen(
                 onLogout = {
-                    // Đăng xuất xong thì lộn ngược lại màn Login
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.HOME) { inclusive = true }
                     }
+                },
+                onJobClick = { jobId ->
+                    navController.navigate("job_detail/$jobId")
                 }
+            )
+        }
+
+        // --- MÀN HÌNH CHI TIẾT CÔNG VIỆC ---
+        composable(Routes.JOB_DETAIL) { backStackEntry ->
+            val jobId = backStackEntry.arguments?.getString("jobId") ?: ""
+            // Tạm thời chưa có JobDetailScreen, lát nữa ta sẽ tạo file này
+            JobDetailScreen(
+                jobId = jobId,
+                onBack = { navController.popBackStack() }
             )
         }
     }
