@@ -2,9 +2,9 @@ package com.example.dacs4.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.dacs4.core.security.TokenManager
 import com.example.dacs4.data.model.response.CompanyResponse
 import com.example.dacs4.data.model.response.JobResponse
+import com.example.dacs4.data.repository.AuthRepository
 import com.example.dacs4.data.repository.CompanyRepository
 import com.example.dacs4.data.repository.JobRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +27,7 @@ sealed class HomeUiState {
 class HomeViewModel @Inject constructor(
     private val jobRepository: JobRepository,
     private val companyRepository: CompanyRepository,
-    private val tokenManager: TokenManager
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -62,6 +62,9 @@ class HomeViewModel @Inject constructor(
     }
 
     fun logout() {
-        tokenManager.clearToken()
+        // Gọi API logout (thông báo server) và xoá token local
+        viewModelScope.launch {
+            authRepository.logout()
+        }
     }
 }

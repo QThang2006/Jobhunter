@@ -14,9 +14,9 @@ import javax.inject.Singleton
 class JobRepository @Inject constructor(
     private val api: ApiService
 ) {
-    suspend fun getJobs(page: Int = 1, pageSize: Int = 10): Result<PaginationData<JobResponse>> {
+    suspend fun getJobs(page: Int = 1, pageSize: Int = 10, filter: String? = null): Result<PaginationData<JobResponse>> {
         return try {
-            val response = api.getJobs(page, pageSize)
+            val response = api.getJobs(page, pageSize, filter = filter)
             if (response.isSuccessful) {
                 val data = response.body()?.data
                 if (data != null) Result.success(data)

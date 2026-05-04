@@ -16,7 +16,10 @@ import com.example.dacs4.ui.screens.job.JobDetailScreen
 object Routes {
     const val LOGIN = "login"
     const val HOME = "home"
-    const val JOB_DETAIL = "job_detail/{jobId}" // {jobId} là tham số nhận vào
+    const val JOB_DETAIL = "job_detail/{jobId}"
+    const val COMPANY_DETAIL = "company_detail/{companyId}"
+    const val JOB_LIST = "job_list"
+    const val COMPANY_LIST = "company_list"
 }
 
 @Composable
@@ -49,6 +52,15 @@ fun AppNavigation(tokenManager: TokenManager) {
                 },
                 onJobClick = { jobId ->
                     navController.navigate("job_detail/$jobId")
+                },
+                onCompanyClick = { companyId ->
+                    navController.navigate("company_detail/$companyId")
+                },
+                onViewAllJobsClick = {
+                    navController.navigate(Routes.JOB_LIST)
+                },
+                onViewAllCompaniesClick = {
+                    navController.navigate(Routes.COMPANY_LIST)
                 }
             )
         }
@@ -56,10 +68,34 @@ fun AppNavigation(tokenManager: TokenManager) {
         // --- MÀN HÌNH CHI TIẾT CÔNG VIỆC ---
         composable(Routes.JOB_DETAIL) { backStackEntry ->
             val jobId = backStackEntry.arguments?.getString("jobId") ?: ""
-            // Tạm thời chưa có JobDetailScreen, lát nữa ta sẽ tạo file này
             JobDetailScreen(
                 jobId = jobId,
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        // --- MÀN HÌNH CHI TIẾT CÔNG TY ---
+        composable(Routes.COMPANY_DETAIL) { backStackEntry ->
+            val companyId = backStackEntry.arguments?.getString("companyId") ?: ""
+            com.example.dacs4.ui.screens.company.CompanyDetailScreen(
+                companyId = companyId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // --- MÀN HÌNH DANH SÁCH VIỆC LÀM ---
+        composable(Routes.JOB_LIST) {
+            com.example.dacs4.ui.screens.job.JobListScreen(
+                onBackClick = { navController.popBackStack() },
+                onJobClick = { jobId -> navController.navigate("job_detail/$jobId") }
+            )
+        }
+
+        // --- MÀN HÌNH DANH SÁCH CÔNG TY ---
+        composable(Routes.COMPANY_LIST) {
+            com.example.dacs4.ui.screens.company.CompanyListScreen(
+                onBackClick = { navController.popBackStack() },
+                onCompanyClick = { companyId -> navController.navigate("company_detail/$companyId") }
             )
         }
     }

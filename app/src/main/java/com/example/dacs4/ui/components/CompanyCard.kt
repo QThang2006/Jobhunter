@@ -1,77 +1,134 @@
 package com.example.dacs4.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
+import com.example.dacs4.core.utils.AppConstants
 import com.example.dacs4.data.model.response.CompanyResponse
+import com.example.dacs4.ui.theme.AppColors
 
 @Composable
 fun CompanyCard(
     company: CompanyResponse,
     onClick: () -> Unit
 ) {
-    val CardBg = Color(0xFF2A2D2F)
-    val TextSecondary = Color(0xFFAAAAAA)
+    // ✅ FIX: collectIsPressedAsState() auto-resets when finger lifts
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val cardBg by animateColorAsState(
+        targetValue = if (isPressed) AppColors.BgAccentLight else AppColors.BgPrimary,
+        animationSpec = spring(dampingRatio = 0.8f),
+        label = "companyCardBg"
+    )
 
-    Card(
+    Box(
         modifier = Modifier
-            .width(150.dp)
+            .width(148.dp)
             .padding(horizontal = 6.dp, vertical = 4.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(cardBg)
+            .border(0.5.dp, AppColors.Border, RoundedCornerShape(14.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onClick() }
+            .padding(12.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            val imageBaseUrl = "http://10.0.2.2:8080/storage/company/"
-            AsyncImage(
-                model = if (company.logo != null) "$imageBaseUrl${company.logo}" else null,
-                contentDescription = "${company.name} Logo",
-                contentScale = ContentScale.Crop,
+            // ─── Logo with text fallback ───────────────────────
+            Box(
                 modifier = Modifier
-                    .size(60.dp)
+                    .size(56.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF3A3D3F))
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+                    .background(AppColors.BgSurface)
+                    .border(0.5.dp, AppColors.Border, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                val logoUrl = if (company.logo != null)
+                    "${AppConstants.IMAGE_BASE_URL}${company.logo}"
+                else null
+
+                if (logoUrl != null) {
+                    SubcomposeAsyncImage(
+                        model = logoUrl,
+                        contentDescription = "${company.name} Logo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(48.dp).clip(CircleShape)
+                    ) {
+                        when (painter.state) {
+                            is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                            else -> CompanyInitial(company.name)
+                        }
+                    }
+                } else {
+                    CompanyInitial(company.name)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             Text(
                 text = company.name,
-                color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp,
+                color = AppColors.TextPrimary,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 17.sp
             )
+
             if (!company.address.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = company.address,
-                    color = TextSecondary,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
+                    color = AppColors.TextHint,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CompanyInitial(name: String) {
+    val initial = name.firstOrNull()?.uppercase() ?: "?"
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(AppColors.AccentBlueLight),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = initial,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.AccentBlue
+        )
     }
 }

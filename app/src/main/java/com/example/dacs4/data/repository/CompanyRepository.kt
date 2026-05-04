@@ -13,9 +13,24 @@ import javax.inject.Singleton
 class CompanyRepository @Inject constructor(
     private val api: ApiService
 ) {
-    suspend fun getCompanies(page: Int = 1, pageSize: Int = 10): Result<PaginationData<CompanyResponse>> {
+    suspend fun getCompanies(page: Int = 1, pageSize: Int = 10, filter: String? = null): Result<PaginationData<CompanyResponse>> {
         return try {
-            val response = api.getCompanies(page, pageSize)
+            val response = api.getCompanies(page, pageSize, filter = filter)
+            if (response.isSuccessful) {
+                val data = response.body()?.data
+                if (data != null) Result.success(data)
+                else Result.failure(Exception("Không có dữ liệu trả về"))
+            } else {
+                Result.failure(Exception("Lỗi server: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getCompanyById(id: String): Result<CompanyResponse> {
+        return try {
+            val response = api.getCompanyById(id)
             if (response.isSuccessful) {
                 val data = response.body()?.data
                 if (data != null) Result.success(data)
