@@ -36,7 +36,8 @@ interface ApiService {
     suspend fun getJobs(
         @Query("current") page: Int = 1,
         @Query("pageSize") pageSize: Int = 10,
-        @Query("sort") sort: String = "createdAt,desc"
+        @Query("sort") sort: String = "createdAt,desc",
+        @Query("filter") filter: String? = null
     ): Response<BaseResponse<PaginationData<JobResponse>>>
 
     @GET("/api/v1/jobs/{id}")
@@ -48,7 +49,8 @@ interface ApiService {
     @GET("/api/v1/companies")
     suspend fun getCompanies(
         @Query("current") page: Int = 1,
-        @Query("pageSize") pageSize: Int = 10
+        @Query("pageSize") pageSize: Int = 10,
+        @Query("filter") filter: String? = null
     ): Response<BaseResponse<PaginationData<CompanyResponse>>>
 
     @GET("/api/v1/companies/{id}")
