@@ -66,9 +66,8 @@ fun JobCard(
                     .border(0.5.dp, AppColors.Border, RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                val logoUrl = if (job.company?.logo != null)
-                    "${AppConstants.IMAGE_BASE_URL}${job.company.logo}"
-                else null
+                // Sửa ở đây: Sử dụng trực tiếp logo từ backend
+                val logoUrl = job.company?.logo
 
                 if (logoUrl != null) {
                     SubcomposeAsyncImage(
@@ -142,7 +141,7 @@ fun JobCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        job.skills.take(3).forEach { skill ->
+                        job.skills.take(2).forEach { skill ->
                             Text(
                                 text = skill.name,
                                 fontSize = 10.sp,
@@ -151,6 +150,17 @@ fun JobCard(
                                 modifier = Modifier
                                     .background(AppColors.BgSurface, RoundedCornerShape(20.dp))
                                     .border(0.5.dp, AppColors.Border, RoundedCornerShape(20.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                        if (job.skills.size > 2) {
+                            Text(
+                                text = "+${job.skills.size - 2}",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = AppColors.AccentBlue,
+                                modifier = Modifier
+                                    .background(AppColors.AccentBlueLight, RoundedCornerShape(20.dp))
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             )
                         }

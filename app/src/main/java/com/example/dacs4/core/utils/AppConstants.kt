@@ -5,8 +5,8 @@ import java.util.Locale
 
 object AppConstants {
 
-    const val IMAGE_BASE_URL = "http://10.0.2.2:8080/storage/company/"
-    const val RESUME_BASE_URL = "http://10.0.2.2:8080/storage/resume/"
+    const val IMAGE_BASE_URL = "https://qejadbzbjfcauyqzgjcw.supabase.co/storage/v1/object/public/company/"
+    const val RESUME_BASE_URL = "https://qejadbzbjfcauyqzgjcw.supabase.co/storage/v1/object/public/resume/"
 
     val LOCATION_LIST: List<Pair<String, String>> = listOf(
         Pair("HANOI", "Hà Nội"),

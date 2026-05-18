@@ -43,4 +43,18 @@ class JobRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun getSkills(): Result<List<com.example.dacs4.data.model.response.SkillResponse>> {
+        return try {
+            val response = api.getSkills(pageSize = 100)
+            if (response.isSuccessful) {
+                val data = response.body()?.data?.result ?: emptyList()
+                Result.success(data)
+            } else {
+                Result.failure(Exception("Lỗi lấy danh sách kỹ năng"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,8 @@ import com.example.dacs4.ui.theme.AppColors
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
+    onNavigateToRegister: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsState()
@@ -235,6 +238,29 @@ fun LoginScreen(
                             fontSize = 13.sp
                         )
                     }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // ─── Links ────────────────────────────────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Quên mật khẩu?",
+                        color = AppColors.AccentBlue,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable { onNavigateToForgotPassword() }.padding(4.dp)
+                    )
+                    Text(
+                        "Chưa có tài khoản? Đăng ký",
+                        color = AppColors.AccentBlue,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable { onNavigateToRegister() }.padding(4.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

@@ -21,7 +21,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Nhúng địa chỉ IP backend cục bộ vào App
-        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+        buildConfigField("String", "BASE_URL", "\"https://jobhunter-backend-aeu0.onrender.com/\"")
     }
 
     buildTypes {
@@ -77,4 +77,9 @@ dependencies {
 
     // Security
     implementation(libs.security.crypto)
+
+    // Socket Logic
+    implementation(libs.stomp.protocol)
+    implementation(libs.rxjava)
+    implementation(libs.rxandroid)
 }

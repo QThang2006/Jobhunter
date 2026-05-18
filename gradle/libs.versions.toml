@@ -21,6 +21,11 @@ gson = "2.10.1"
 # Security
 securityCrypto = "1.1.0-alpha06"
 
+# STOMP & RxJava (For WebSockets)
+stompVersion = "1.6.6"
+rxjavaVersion = "2.2.21"
+rxandroidVersion = "2.1.1"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 
@@ -47,6 +52,11 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+
+# Socket Logic
+stomp-protocol = { group = "com.github.NaikSoftware", name = "StompProtocolAndroid", version.ref = "stompVersion" }
+rxjava = { group = "io.reactivex.rxjava2", name = "rxjava", version.ref = "rxjavaVersion" }
+rxandroid = { group = "io.reactivex.rxjava2", name = "rxandroid", version.ref = "rxandroidVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

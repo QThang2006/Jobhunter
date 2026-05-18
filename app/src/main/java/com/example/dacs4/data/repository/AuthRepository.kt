@@ -43,6 +43,11 @@ class AuthRepository @Inject constructor(
                     if (body.statusCode in 200..299 && body.data != null) {
                         // Vô mánh! Lưu Token vừa lấy về vào Két sắt 256-bit AES
                         tokenManager.saveAccessToken(body.data.access_token)
+                        tokenManager.saveUserInfo(
+                            userId = body.data.user.id,
+                            email  = body.data.user.email,
+                            name   = body.data.user.name
+                        )
                         
                         // Đóng gói data thành công ném ra ngoài
                         Result.success(body.data)
@@ -57,6 +62,24 @@ class AuthRepository @Inject constructor(
             } catch (e: Exception) {
                 // Lỗi Mạng Di Động / Cáp Quang biển đứt / Timeout
                 Result.failure(Exception("Mất kết nối mạng! Vui lòng kiểm tra Wifi/3G và thử lại."))
+            }
+        }
+    }
+
+    /**
+     * Hàm Đăng Ký
+     */
+    suspend fun register(request: com.example.dacs4.data.model.request.RegisterRequest): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.register(request)
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Email đã tồn tại hoặc đăng ký thất bại."))
+                }
+            } catch (e: Exception) {
+                Result.failure(Exception("Lỗi kết nối: ${e.message}"))
             }
         }
     }
@@ -84,6 +107,61 @@ class AuthRepository @Inject constructor(
                 tokenManager.clearToken()
                 // Lỗi mạng vẫn cho out ra login sạch sẽ!
                 Result.success(true)
+            }
+        }
+    }
+    /**
+     * Gửi yêu cầu OTP để reset mật khẩu
+     */
+    suspend fun requestOtp(email: String): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.forgotPassword(mapOf("email" to email))
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Email không tồn tại hoặc lỗi hệ thống."))
+                }
+            } catch (e: Exception) {
+                Result.failure(Exception("Lỗi kết nối: ${e.message}"))
+            }
+        }
+    }
+
+    /**
+     * Xác thực OTP
+     */
+    suspend fun verifyOtp(email: String, otp: String): Result<Boolean> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.verifyOtp(mapOf("email" to email, "otp" to otp))
+                if (response.isSuccessful && response.body() == true) {
+                    Result.success(true)
+                } else {
+                    Result.failure(Exception("OTP không đúng hoặc đã hết hạn."))
+                }
+            } catch (e: Exception) {
+                Result.failure(Exception("Lỗi kết nối: ${e.message}"))
+            }
+        }
+    }
+
+    /**
+     * Đặt lại mật khẩu với OTP
+     */
+    suspend fun resetPassword(email: String, otp: String, newPass: String): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.resetPassword(
+                    mapOf("email" to email, "otp" to otp, "newPass" to newPass)
+                )
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Lỗi đặt lại mật khẩu."))
+                }
+            } catch (e: Exception) {
+                Result.failure(Exception("Lỗi kết nối: ${e.message}"))
             }
         }
     }

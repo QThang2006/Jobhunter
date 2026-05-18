@@ -37,40 +37,21 @@ fun JobDetailScreen(
     viewModel: JobDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showApplySheet by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(jobId) { viewModel.fetchJobDetail(jobId) }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Chi tiết công việc",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 17.sp,
-                        color = AppColors.TextPrimary
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Trở về",
-                            tint = AppColors.TextPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppColors.BgPrimary
-                )
-            )
-        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = AppColors.BgPrimary
     ) { padding ->
-        when (val state = uiState) {
-            is JobDetailUiState.Loading -> {
+        val state = uiState
+        Box(modifier = Modifier.fillMaxSize()) {
+            // ─── Case: Loading (first time, no data) ─────────────────────────
+            if (state.isLoading && state.job == null) {
                 Box(
-                    Modifier.fillMaxSize().padding(padding),
+                    Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
@@ -80,19 +61,21 @@ fun JobDetailScreen(
                     )
                 }
             }
-            is JobDetailUiState.Error -> {
+            // ─── Case: Error (and no data) ──────────────────────────────────
+            else if (state.error != null && state.job == null) {
                 Box(
-                    Modifier.fillMaxSize().padding(padding),
+                    Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("😕", fontSize = 40.sp)
                         Spacer(Modifier.height(12.dp))
-                        Text(state.message, fontSize = 14.sp, color = AppColors.TextSecondary)
+                        Text(state.error, fontSize = 14.sp, color = AppColors.TextSecondary)
                     }
                 }
             }
-            is JobDetailUiState.Success -> {
+            // ─── Case: Data (or loading with existing data) ──────────────────
+            else if (state.job != null) {
                 val job = state.job
                 Column(
                     modifier = Modifier
@@ -128,9 +111,8 @@ fun JobDetailScreen(
                                     .border(0.5.dp, AppColors.Border, RoundedCornerShape(20.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val logoUrl = if (job.company?.logo != null)
-                                    "${AppConstants.IMAGE_BASE_URL}${job.company.logo}"
-                                else null
+                                // Sửa ở đây: Sử dụng trực tiếp logo từ backend
+                                val logoUrl = job.company?.logo
                                 if (logoUrl != null) {
                                     SubcomposeAsyncImage(
                                         model = logoUrl,
@@ -293,25 +275,73 @@ fun JobDetailScreen(
 
                     // ─── CTA Button ───────────────────────────────
                     Spacer(Modifier.height(32.dp))
+                    
+                    var isNotOpen = false
+                    var isExpired = false
+                    var isJobActive = true
+                    try {
+                        val start = java.time.Instant.parse(job.startDate)
+                        val end = java.time.Instant.parse(job.endDate)
+                        val now = java.time.Instant.now()
+                        if (now.isAfter(end)) { isExpired = true; isJobActive = false }
+                        if (now.isBefore(start)) { isNotOpen = true; isJobActive = false }
+                    } catch (e: Exception) {}
+
                     Box(modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
                         Button(
-                            onClick = { /* TODO: Apply flow */ },
+                            onClick = { showApplySheet = true },
+                            enabled = isJobActive,
                             modifier = Modifier.fillMaxWidth().height(54.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = AppColors.AccentBlue
+                                containerColor = if (isJobActive) AppColors.AccentBlue else AppColors.BgSurface,
+                                disabledContainerColor = AppColors.BgSurface
                             ),
                             elevation = ButtonDefaults.buttonElevation(0.dp)
                         ) {
                             Text(
-                                "Ứng tuyển ngay",
+                                text = when {
+                                    isExpired -> "Đã hết hạn tuyển dụng"
+                                    isNotOpen -> "Chưa mở tuyển"
+                                    else -> "Ứng tuyển ngay"
+                                },
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
-                                color = Color.White
+                                color = if (isJobActive) Color.White else AppColors.TextHint
                             )
                         }
                     }
-                    Spacer(Modifier.height(32.dp))
+                    
+                    // Thêm khoảng trống lớn ở dưới cùng để nổi lên trên Bottom Nav
+                    Spacer(Modifier.height(110.dp))
+                }
+                
+                // Floating Back Button
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .padding(top = 12.dp, start = 12.dp)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.8f))
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Trở về",
+                        tint = AppColors.TextPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                
+                if (showApplySheet) {
+                    ApplyJobSheet(
+                        job = job,
+                        onDismiss = { showApplySheet = false },
+                        onSuccess = {
+                            showApplySheet = false
+                            // Không thể dùng viewModelScope ở đây dễ dàng, thay bằng run blocking cho UI thì dùng LaunchedEffect
+                        }
+                    )
                 }
             }
         }
@@ -364,4 +394,3 @@ private fun HeroLogoFallback(name: String?) {
         )
     }
 }
-

@@ -10,8 +10,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,65 +49,72 @@ fun HomeScreen(
     // ── Time-based greeting ──────────────────────────────────────────────
     val greeting = remember {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val name = viewModel.userName
         when {
-            hour < 12 -> "Chào buổi sáng ☀️"
-            hour < 18 -> "Chào buổi chiều 🌤"
-            else      -> "Chào buổi tối 🌙"
+            hour < 12 -> "Chào buổi sáng, $name ☀️"
+            hour < 18 -> "Chào buổi chiều, $name 🌤"
+            else      -> "Chào buổi tối, $name 🌙"
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = greeting,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = AppColors.TextPrimary
-                        )
-                        Text(
-                            text = "Tìm công việc phù hợp với bạn",
-                            fontSize = 11.sp,
-                            color = AppColors.TextSecondary
-                        )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AppColors.BgPrimary)
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                    val greeting = when {
+                        hour < 12 -> "Chào buổi sáng"
+                        hour < 18 -> "Chào buổi chiều"
+                        else      -> "Chào buổi tối"
                     }
-                },
-                actions = {
-                    IconButton(onClick = {
+                    Text(
+                        text = "$greeting, ${viewModel.userName} 👋",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = AppColors.TextPrimary,
+                        letterSpacing = (-0.4).sp
+                    )
+                    Text(
+                        text = "Khám phá cơ hội mới ngay hôm nay",
+                        fontSize = 12.sp,
+                        color = AppColors.TextSecondary
+                    )
+                }
+
+                // Logout Action
+                IconButton(
+                    onClick = {
                         viewModel.logout()
                         onLogout()
-                    }) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(AppColors.BgSurface)
-                                .border(0.5.dp, AppColors.Border, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.ExitToApp,
-                                contentDescription = "Đăng xuất",
-                                tint = AppColors.TextSecondary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppColors.BgPrimary
-                )
-            )
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.ExitToApp,
+                        contentDescription = "Đăng xuất",
+                        tint = AppColors.TextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         },
         containerColor = AppColors.BgPrimary
     ) { padding ->
-        when (val state = uiState) {
+        val state = uiState
 
-            is HomeUiState.Loading -> {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // ─── Case: First Loading (no data yet) ───────────────────────────
+            if (state.isLoading && state.jobs.isEmpty() && state.companies.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -118,11 +131,11 @@ fun HomeScreen(
                         )
                     }
                 }
-            }
-
-            is HomeUiState.Error -> {
+            } 
+            // ─── Case: Error (and no data) ──────────────────────────────────
+            else if (state.error != null && state.jobs.isEmpty() && state.companies.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -132,7 +145,7 @@ fun HomeScreen(
                         Text("😕", fontSize = 40.sp)
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = state.message,
+                            text = state.error,
                             fontSize = 14.sp,
                             color = AppColors.TextSecondary
                         )
@@ -156,37 +169,24 @@ fun HomeScreen(
                     }
                 }
             }
-
-            is HomeUiState.Success -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                ) {
-
-                    // ─── Search Bar hint ──────────────────────────
+            // ─── Case: Success (or Loading/Error with existing data) ──────────
+            else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    // ─── Premium Skills Filter Chips ─────────────────────
                     item {
-                        Box(
+                        LazyRow(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(AppColors.BgSurface)
-                                .border(0.5.dp, AppColors.Border, RoundedCornerShape(12.dp))
-                                .padding(horizontal = 16.dp, vertical = 14.dp)
+                                .padding(top = 4.dp, bottom = 16.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.Search,
-                                    contentDescription = null,
-                                    tint = AppColors.TextHint,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    "Tìm kiếm công việc, công ty...",
-                                    fontSize = 14.sp,
-                                    color = AppColors.TextHint
+                            items(state.skills) { skill ->
+                                PremiumSkillChip(
+                                    label = skill.name,
+                                    isSelected = state.selectedSkill == skill.name,
+                                    onClick = { viewModel.onSkillSelected(skill.name) }
                                 )
                             }
                         }
@@ -199,8 +199,10 @@ fun HomeScreen(
                             actionLabel = "Xem tất cả",
                             onAction = onViewAllCompaniesClick
                         )
+                        Spacer(modifier = Modifier.height(12.dp)) // Title -> Content
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 10.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(0.dp)
                         ) {
                             items(state.companies) { company ->
                                 CompanyCard(
@@ -209,16 +211,7 @@ fun HomeScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-
-                    // ─── Divider ──────────────────────────────────
-                    item {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            thickness = 0.5.dp,
-                            color = AppColors.Border
-                        )
+                        Spacer(modifier = Modifier.height(24.dp)) // Section -> Section
                     }
 
                     // ─── Section: Việc làm mới nhất ───────────────
@@ -228,6 +221,7 @@ fun HomeScreen(
                             actionLabel = "Xem tất cả",
                             onAction = onViewAllJobsClick
                         )
+                        Spacer(modifier = Modifier.height(12.dp)) // Title -> Content
                     }
 
                     items(state.jobs) { job ->
@@ -237,9 +231,61 @@ fun HomeScreen(
                         )
                     }
 
-                    item { Spacer(modifier = Modifier.height(24.dp)) }
+                    item { Spacer(modifier = Modifier.height(120.dp)) }
                 }
             }
+        }
+    }
+}
+
+// ─── Premium Skill Chip Component ───────────────────────────────────────────
+@Composable
+private fun PremiumSkillChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    // Animations
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        label = "scale"
+    )
+    val containerColor by animateColorAsState(
+        targetValue = if (isSelected) AppColors.AccentBlue.copy(alpha = 0.12f) else AppColors.BgSurface,
+        label = "containerColor"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) AppColors.AccentBlue else AppColors.TextSecondary,
+        label = "contentColor"
+    )
+    val fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+
+    Surface(
+        modifier = Modifier
+            .graphicsLayer(scaleX = scale, scaleY = scale)
+            .clip(RoundedCornerShape(24.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        color = containerColor,
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                color = contentColor,
+                fontSize = 12.sp,
+                fontWeight = fontWeight,
+                letterSpacing = 0.2.sp
+            )
         }
     }
 }
@@ -254,23 +300,26 @@ private fun SectionHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = title,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 16.sp,
-            color = AppColors.TextPrimary
+            fontSize = 17.sp,
+            color = AppColors.TextPrimary,
+            letterSpacing = (-0.3).sp
         )
-        TextButton(onClick = onAction, contentPadding = PaddingValues(0.dp)) {
-            Text(
-                text = actionLabel,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = AppColors.AccentBlue
-            )
+        if (actionLabel.isNotEmpty()) {
+            TextButton(onClick = onAction, contentPadding = PaddingValues(0.dp)) {
+                Text(
+                    text = actionLabel,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = AppColors.AccentBlue
+                )
+            }
         }
     }
 }

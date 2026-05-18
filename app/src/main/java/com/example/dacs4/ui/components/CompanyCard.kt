@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,7 +45,7 @@ fun CompanyCard(
     Box(
         modifier = Modifier
             .width(148.dp)
-            .padding(horizontal = 6.dp, vertical = 4.dp)
+            .padding(horizontal = 4.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(cardBg)
             .border(0.5.dp, AppColors.Border, RoundedCornerShape(14.dp))
@@ -67,9 +68,8 @@ fun CompanyCard(
                     .border(0.5.dp, AppColors.Border, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                val logoUrl = if (company.logo != null)
-                    "${AppConstants.IMAGE_BASE_URL}${company.logo}"
-                else null
+                // Sửa ở đây: Sử dụng trực tiếp logo từ backend
+                val logoUrl = company.logo
 
                 if (logoUrl != null) {
                     SubcomposeAsyncImage(
@@ -95,19 +95,22 @@ fun CompanyCard(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp,
                 color = AppColors.TextPrimary,
-                maxLines = 2,
+                maxLines = 1, // ✅ Giữ trên 1 dòng
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 17.sp
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
 
             if (!company.address.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = company.address,
-                    fontSize = 10.sp,
+                    text = company.address ?: "",
+                    fontSize = 11.sp,
                     color = AppColors.TextHint,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

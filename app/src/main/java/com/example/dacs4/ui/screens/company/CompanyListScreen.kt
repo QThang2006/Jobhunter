@@ -176,7 +176,7 @@ fun CompanyListScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 110.dp),
                         verticalArrangement = Arrangement.spacedBy(1.dp)
                     ) {
                         items(uiState.companies, key = { it.id }) { company ->
@@ -240,9 +240,8 @@ private fun CompanyRowItem(company: CompanyResponse, onClick: () -> Unit) {
                 .border(0.5.dp, AppColors.Border, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            val logoUrl = if (company.logo != null)
-                "${AppConstants.IMAGE_BASE_URL}${company.logo}"
-            else null
+            // Sửa ở đây: Sử dụng trực tiếp logo từ backend
+            val logoUrl = company.logo
             if (logoUrl != null) {
                 SubcomposeAsyncImage(
                     model = logoUrl,
@@ -312,4 +311,3 @@ private fun CompanyInitialText(name: String) {
         )
     }
 }
-

@@ -3,6 +3,7 @@ package com.example.dacs4.ui.screens.company
 import android.widget.TextView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -25,7 +26,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import com.example.dacs4.core.utils.AppConstants
+import com.example.dacs4.ui.components.JobCard
 import com.example.dacs4.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,43 +36,24 @@ import com.example.dacs4.ui.theme.AppColors
 fun CompanyDetailScreen(
     companyId: String,
     onBack: () -> Unit,
+    onJobClick: (String) -> Unit,
     viewModel: CompanyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(companyId) { viewModel.fetchCompanyDetail(companyId) }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Chi tiết công ty",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 17.sp,
-                        color = AppColors.TextPrimary
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Trở về",
-                            tint = AppColors.TextPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppColors.BgPrimary
-                )
-            )
-        },
         containerColor = AppColors.BgPrimary
     ) { padding ->
-        when (val state = uiState) {
-            is CompanyDetailUiState.Loading -> {
+        val state = uiState
+        Box(modifier = Modifier.fillMaxSize()) {
+            // ─── Case: Loading (first time, no data) ─────────────────────────
+            if (state.isLoading && state.company == null) {
                 Box(
-                    Modifier.fillMaxSize().padding(padding),
+                    Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
@@ -79,25 +63,27 @@ fun CompanyDetailScreen(
                     )
                 }
             }
-            is CompanyDetailUiState.Error -> {
+            // ─── Case: Error (and no data) ──────────────────────────────────
+            else if (state.error != null && state.company == null) {
                 Box(
-                    Modifier.fillMaxSize().padding(padding),
+                    Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("😕", fontSize = 40.sp)
                         Spacer(Modifier.height(12.dp))
-                        Text(state.message, fontSize = 14.sp, color = AppColors.TextSecondary)
+                        Text(state.error, fontSize = 14.sp, color = AppColors.TextSecondary)
                     }
                 }
             }
-            is CompanyDetailUiState.Success -> {
+            // ─── Case: Data (or loading with existing data) ──────────────────
+            else if (state.company != null) {
                 val company = state.company
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(scrollState)
                 ) {
                     // ─── Hero Area ────────────────────────────────
                     Box(
@@ -118,9 +104,8 @@ fun CompanyDetailScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 AsyncImage(
-                                    model = if (company.logo != null)
-                                        "${AppConstants.IMAGE_BASE_URL}${company.logo}"
-                                    else null,
+                                    // Sửa ở đây: Sử dụng trực tiếp logo từ backend
+                                    model = company.logo,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.size(76.dp).clip(CircleShape)
@@ -169,10 +154,16 @@ fun CompanyDetailScreen(
                             modifier = Modifier.weight(1f)
                         )
                         CompanyBadge(
-                            label = "Trạng thái",
-                            value = "Đang hoạt động",
-                            valueColor = AppColors.Success,
-                            modifier = Modifier.weight(1f)
+                            label = "Số lượng job",
+                            value = "${state.jobCount} công việc",
+                            valueColor = AppColors.AccentBlue,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { 
+                                    scope.launch {
+                                        scrollState.animateScrollTo(scrollState.maxValue)
+                                    }
+                                }
                         )
                     }
 
@@ -219,7 +210,48 @@ fun CompanyDetailScreen(
                         }
                     }
 
+                    // ─── Jobs section ────────────────────────────
+                    if (state.jobs.isNotEmpty()) {
+                        Spacer(Modifier.height(32.dp))
+                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            Text(
+                                "Việc làm tại công ty",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp,
+                                color = AppColors.TextPrimary
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            state.jobs.forEach { job ->
+                                JobCard(
+                                    job = job,
+                                    onClick = { onJobClick(job.id) }
+                                )
+                                Spacer(Modifier.height(8.dp))
+                            }
+                        }
+                    }
+
                     Spacer(Modifier.height(32.dp))
+
+                    // Thêm khoảng trống ở dưới để nổi lên trên Bottom Nav
+                    Spacer(Modifier.height(110.dp))
+                }
+
+                // Floating Back Button
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .padding(top = 12.dp, start = 12.dp)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.8f))
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Trở về",
+                        tint = AppColors.TextPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }

@@ -31,7 +31,9 @@ class TokenManager @Inject constructor(@ApplicationContext context: Context) {
 
     companion object {
         private const val KEY_ACCESS_TOKEN = "access_token"
-        // Có thể lưu thêm User ID hoặc Role tại đây nếu cần
+        private const val KEY_USER_ID      = "user_id"
+        private const val KEY_USER_EMAIL   = "user_email"
+        private const val KEY_USER_NAME    = "user_name"
     }
 
     // --------------------------------------------------------
@@ -48,9 +50,27 @@ class TokenManager @Inject constructor(@ApplicationContext context: Context) {
         return sharedPreferences.getString(KEY_ACCESS_TOKEN, null)
     }
 
-    // Xóa Token khi người dùng Đăng Xuất (Logout) 
+    // Lưu thông tin user sau khi đăng nhập thành công
+    fun saveUserInfo(userId: String, email: String, name: String) {
+        sharedPreferences.edit()
+            .putString(KEY_USER_ID, userId)
+            .putString(KEY_USER_EMAIL, email)
+            .putString(KEY_USER_NAME, name)
+            .apply()
+    }
+
+    fun getUserId(): String? = sharedPreferences.getString(KEY_USER_ID, null)
+    fun getUserEmail(): String? = sharedPreferences.getString(KEY_USER_EMAIL, null)
+    fun getUserName(): String? = sharedPreferences.getString(KEY_USER_NAME, null)
+
+    // Xóa Token và toàn bộ dữ liệu khi người dùng Đăng Xuất
     fun clearToken() {
-        sharedPreferences.edit().remove(KEY_ACCESS_TOKEN).apply()
+        sharedPreferences.edit()
+            .remove(KEY_ACCESS_TOKEN)
+            .remove(KEY_USER_ID)
+            .remove(KEY_USER_EMAIL)
+            .remove(KEY_USER_NAME)
+            .apply()
     }
 
     // Kiểm tra xem đã Đăng nhập chưa
